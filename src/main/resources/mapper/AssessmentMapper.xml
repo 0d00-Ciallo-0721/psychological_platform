@@ -1,0 +1,219 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.AssessmentMapper">
+
+    <resultMap id="AssessmentPlanMap" type="sasu.platform.mhm.pojo.entity.AssessmentPlan">
+        <id property="planId" column="plan_id"/>
+        <result property="planName" column="plan_name"/>
+        <result property="templateId" column="template_id"/>
+        <result property="targetRole" column="target_role"/>
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="maxAttempts" column="max_attempts"/>
+        <result property="status" column="status"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <resultMap id="AssessmentRecordMap" type="sasu.platform.mhm.pojo.entity.AssessmentRecord">
+        <id property="recordId" column="record_id"/>
+        <result property="planId" column="plan_id"/>
+        <result property="templateId" column="template_id"/>
+        <result property="userId" column="user_id"/>
+        <result property="status" column="status"/>
+        <result property="startedAt" column="started_at"/>
+        <result property="submittedAt" column="submitted_at"/>
+        <result property="answersJson" column="answers_json"/>
+        <result property="totalScore" column="total_score"/>
+        <result property="dimensionScoreJson" column="dimension_score_json"/>
+        <result property="scoreInterpretation" column="score_interpretation"/>
+        <result property="riskLevel" column="risk_level"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <insert id="insertPlan">
+        INSERT INTO assessment_plan (
+            plan_id,
+            plan_name,
+            template_id,
+            target_role,
+            start_time,
+            end_time,
+            max_attempts,
+            status,
+            created_by,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{planId},
+            #{planName},
+            #{templateId},
+            #{targetRole},
+            #{startTime},
+            #{endTime},
+            #{maxAttempts},
+            #{status},
+            #{createdBy},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <update id="updatePlan">
+        UPDATE assessment_plan
+        SET
+            plan_name = #{planName},
+            template_id = #{templateId},
+            target_role = #{targetRole},
+            start_time = #{startTime},
+            end_time = #{endTime},
+            max_attempts = #{maxAttempts},
+            status = #{status},
+            updated_at = NOW()
+        WHERE plan_id = #{planId}
+    </update>
+
+    <select id="getPlanById" resultMap="AssessmentPlanMap">
+        SELECT
+            plan_id,
+            plan_name,
+            template_id,
+            target_role,
+            start_time,
+            end_time,
+            max_attempts,
+            status,
+            created_by,
+            created_at,
+            updated_at
+        FROM assessment_plan
+        WHERE plan_id = #{planId}
+    </select>
+
+    <select id="listPlans" resultMap="AssessmentPlanMap">
+        SELECT
+            plan_id,
+            plan_name,
+            template_id,
+            target_role,
+            start_time,
+            end_time,
+            max_attempts,
+            status,
+            created_by,
+            created_at,
+            updated_at
+        FROM assessment_plan
+        <where>
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+            <if test="keyword != null and keyword != ''">
+                AND plan_name LIKE CONCAT('%', #{keyword}, '%')
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertRecord">
+        INSERT INTO assessment_record (
+            record_id,
+            plan_id,
+            template_id,
+            user_id,
+            status,
+            started_at,
+            submitted_at,
+            answers_json,
+            total_score,
+            dimension_score_json,
+            score_interpretation,
+            risk_level,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{recordId},
+            #{planId},
+            #{templateId},
+            #{userId},
+            #{status},
+            #{startedAt},
+            #{submittedAt},
+            CAST(#{answersJson} AS JSON),
+            #{totalScore},
+            CAST(#{dimensionScoreJson} AS JSON),
+            #{scoreInterpretation},
+            #{riskLevel},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <update id="updateRecord">
+        UPDATE assessment_record
+        SET
+            status = #{status},
+            started_at = #{startedAt},
+            submitted_at = #{submittedAt},
+            answers_json = CAST(#{answersJson} AS JSON),
+            total_score = #{totalScore},
+            dimension_score_json = CAST(#{dimensionScoreJson} AS JSON),
+            score_interpretation = #{scoreInterpretation},
+            risk_level = #{riskLevel},
+            updated_at = NOW()
+        WHERE record_id = #{recordId}
+    </update>
+
+    <select id="getRecordById" resultMap="AssessmentRecordMap">
+        SELECT
+            record_id,
+            plan_id,
+            template_id,
+            user_id,
+            status,
+            started_at,
+            submitted_at,
+            answers_json,
+            total_score,
+            dimension_score_json,
+            score_interpretation,
+            risk_level,
+            created_at,
+            updated_at
+        FROM assessment_record
+        WHERE record_id = #{recordId}
+    </select>
+
+    <select id="countSubmittedByUserAndPlan" resultType="int">
+        SELECT COUNT(1)
+        FROM assessment_record
+        WHERE user_id = #{userId}
+          AND plan_id = #{planId}
+          AND status = 1
+    </select>
+
+    <select id="listRecordsByUser" resultMap="AssessmentRecordMap">
+        SELECT
+            record_id,
+            plan_id,
+            template_id,
+            user_id,
+            status,
+            started_at,
+            submitted_at,
+            answers_json,
+            total_score,
+            dimension_score_json,
+            score_interpretation,
+            risk_level,
+            created_at,
+            updated_at
+        FROM assessment_record
+        WHERE user_id = #{userId}
+        ORDER BY submitted_at DESC, created_at DESC
+    </select>
+
+</mapper>
+

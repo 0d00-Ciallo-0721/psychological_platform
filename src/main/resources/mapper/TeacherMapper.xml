@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.TeacherMapper">
+
+    <resultMap id="TeacherMessageVOMap" type="sasu.platform.mhm.pojo.vo.TeacherMessageVO">
+        <id property="id" column="message_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="studentName" column="student_name"/>
+        <result property="fromRole" column="from_role"/>
+        <result property="fromRoleText" column="from_role_text"/>
+        <result property="content" column="content"/>
+        <result property="time" column="time_text"/>
+        <result property="read" column="is_read"/>
+        <result property="replied" column="replied"/>
+        <result property="reply" column="reply_content"/>
+    </resultMap>
+
+    <resultMap id="CounselorVOMap" type="sasu.platform.mhm.pojo.vo.CounselorVO">
+        <id property="id" column="counselor_id"/>
+        <result property="name" column="real_name"/>
+        <result property="phone" column="phone"/>
+        <result property="email" column="email"/>
+        <result property="title" column="title"/>
+        <result property="collegeName" column="college_name"/>
+        <result property="avatar" column="avatar_url"/>
+        <result property="office" column="office_location"/>
+        <result property="officeHours" column="office_hours"/>
+        <result property="intro" column="introduction"/>
+    </resultMap>
+
+    <insert id="insertMessage" parameterType="sasu.platform.mhm.pojo.entity.TeacherMessage">
+        INSERT INTO teacher_message (
+            message_id, sender_id, receiver_id, student_id, parent_id,
+            subject, content, from_role, reply_to_id, is_read, replied, reply_content, created_at, updated_at
+        ) VALUES (
+            #{messageId},
+            #{senderId},
+            #{receiverId},
+            #{studentId},
+            #{parentId},
+            #{subject},
+            #{content},
+            #{fromRole},
+            #{replyToId},
+            #{isRead},
+            #{replied},
+            #{replyContent},
+            #{createdAt},
+            #{updatedAt}
+        )
+    </insert>
+
+    <update id="updateMessage" parameterType="sasu.platform.mhm.pojo.entity.TeacherMessage">
+        UPDATE teacher_message
+        SET
+            is_read = #{isRead},
+            replied = #{replied},
+            reply_content = #{replyContent},
+            updated_at = #{updatedAt}
+        WHERE message_id = #{messageId}
+    </update>
+
+    <select id="selectMessageById" resultType="sasu.platform.mhm.pojo.entity.TeacherMessage">
+        SELECT
+            message_id,
+            sender_id,
+            receiver_id,
+            student_id,
+            parent_id,
+            subject,
+            content,
+            from_role,
+            reply_to_id,
+            is_read,
+            replied,
+            reply_content,
+            created_at,
+            updated_at
+            from_role,
+            reply_to_id,
+            is_read,
+            replied,
+            reply_content,
+            created_at,
+            updated_at
+        FROM teacher_message
+        WHERE message_id = #{messageId}
+    </select>
+
+    <select id="selectInbox" resultMap="TeacherMessageVOMap">
+        SELECT
+            tm.message_id,
+            tm.student_id,
+            stu.real_name         AS student_name,
+            tm.from_role,
+            CASE tm.from_role
+                WHEN 'parent' THEN '家长'
+                WHEN 'student' THEN '学生'
+                WHEN 'leader' THEN '领导'
+                ELSE '用户'
+                END                 AS from_role_text,
+            tm.content,
+            DATE_FORMAT(tm.created_at, '%Y-%m-%d %H:%i') AS time_text,
+            tm.is_read,
+            tm.replied,
+            tm.reply_content
+        FROM teacher_message tm
+                 LEFT JOIN user stu ON tm.student_id = stu.user_id
+        WHERE tm.receiver_id = #{receiverId}
+        <if test="query.unreadOnly != null and query.unreadOnly">
+            AND tm.is_read = 0
+        </if>
+        ORDER BY tm.created_at DESC
+    </select>
+
+    <select id="selectCounselorList" resultMap="CounselorVOMap">
+        SELECT
+            ci.counselor_id,
+            u.real_name,
+            u.phone,
+            u.email,
+            ci.title,
+            o.org_name AS college_name
+        FROM counselor_info ci
+                 JOIN user u ON ci.counselor_id = u.user_id
+                 LEFT JOIN organization o ON ci.college_id = o.org_id
+        WHERE ci.is_psychological_instructor = 1
+        ORDER BY u.real_name ASC
+    </select>
+
+</mapper>
+
+

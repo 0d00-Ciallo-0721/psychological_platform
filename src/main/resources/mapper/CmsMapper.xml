@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.CmsMapper">
+
+    <select id="getCmss"
+            parameterType="sasu.platform.mhm.pojo.dto.PageQueryDTO"
+            resultType="sasu.platform.mhm.pojo.entity.CmsContent">
+        SELECT
+        id, type, title, summary, content,
+        cover_url, link_url, author, source_org,
+        is_top, status, sort_order,
+        publish_time, create_time, update_time, creator_id
+        FROM cms_content
+        <where>
+            <!-- 栏目类型 -->
+            <if test="type != 0">
+                AND type = #{type}
+            </if>
+
+            <!-- 状态 -->
+            <if test="status != null">
+                AND status = #{status}
+            </if>
+
+            <!-- 关键词：标题/摘要 -->
+            <if test="keyWords != null and keyWords != ''">
+                AND (
+                title LIKE CONCAT('%', #{keyWords}, '%')
+                OR summary LIKE CONCAT('%', #{keyWords}, '%')
+                )
+            </if>
+
+            <!-- 组织筛选：你 DTO 是 org_id；此处按 source_org 精确匹配（按你实际字段再调整） -->
+            <if test="org_id != null and org_id != ''">
+                AND source_org = #{org_id}
+            </if>
+
+            <!-- 时间范围：前端只到“日”，格式 yyyy-MM-dd
+                 规则：publish_time >= startDate 00:00:00
+                       publish_time <  (endDate + 1天) 00:00:00 -->
+            <if test="startTime != null and startTime != ''">
+                AND publish_time <![CDATA[>=]]> CONCAT(#{startTime}, ' 00:00:00')
+            </if>
+            <if test="endTime != null and endTime != ''">
+                AND publish_time <![CDATA[<]]> DATE_ADD(CONCAT(#{endTime}, ' 00:00:00'), INTERVAL 1 DAY)
+            </if>
+        </where>
+
+        ORDER BY
+        is_top DESC,
+        sort_order DESC,
+        <choose>
+            <when test="sortType == 1">
+                publish_time ASC
+            </when>
+            <otherwise>
+                publish_time DESC
+            </otherwise>
+        </choose>
+    </select>
+    <select id="getCmsDetail" resultType="sasu.platform.mhm.pojo.entity.CmsContent">
+        SELECT
+            id, type, title, summary, content,
+            cover_url, link_url, author, source_org,
+            is_top, status, sort_order,
+            publish_time, create_time, update_time, creator_id
+        FROM cms_content
+        WHERE id = #{id}
+    </select>
+
+    <!-- 插入CMS内容 -->
+    <insert id="insertCmsContent" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO cms_content (
+            type, title, summary, content, cover_url, link_url,
+            author, source_org, is_top, status, sort_order,
+            publish_time, create_time, update_time, creator_id
+        ) VALUES (
+            #{type}, #{title}, #{summary}, #{content}, #{coverUrl}, #{linkUrl},
+            #{author}, #{sourceOrg}, #{isTop}, #{status}, #{sortOrder},
+            #{publishTime}, NOW(), NOW(), #{creatorId}
+        )
+    </insert>
+
+    <!-- 更新CMS内容 -->
+    <update id="updateCmsContent">
+        UPDATE cms_content
+        <set>
+            <if test="title != null">
+                title = #{title},
+            </if>
+            <if test="summary != null">
+                summary = #{summary},
+            </if>
+            <if test="content != null">
+                content = #{content},
+            </if>
+            <if test="coverUrl != null">
+                cover_url = #{coverUrl},
+            </if>
+            <if test="linkUrl != null">
+                link_url = #{linkUrl},
+            </if>
+            <if test="author != null">
+                author = #{author},
+            </if>
+            <if test="sourceOrg != null">
+                source_org = #{sourceOrg},
+            </if>
+            <if test="isTop != null">
+                is_top = #{isTop},
+            </if>
+            <if test="status != null">
+                status = #{status},
+            </if>
+            <if test="sortOrder != null">
+                sort_order = #{sortOrder},
+            </if>
+            <if test="publishTime != null">
+                publish_time = #{publishTime},
+            </if>
+            update_time = NOW()
+        </set>
+        WHERE id = #{id}
+    </update>
+
+    <!-- 删除CMS内容 -->
+    <delete id="deleteCmsContent">
+        DELETE FROM cms_content
+        WHERE id = #{id}
+    </delete>
+
+</mapper>

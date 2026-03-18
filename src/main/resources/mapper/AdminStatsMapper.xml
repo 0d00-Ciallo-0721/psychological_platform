@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.AdminStatsMapper">
+
+    <select id="countStudents" resultType="long">
+        SELECT COUNT(1) FROM student_info
+    </select>
+
+    <select id="countActiveStudents" resultType="long">
+        SELECT COUNT(DISTINCT student_id)
+        FROM consultation_appointment
+        WHERE appointment_status IN ('CONFIRMED', 'COMPLETED')
+          AND appointment_date BETWEEN #{start} AND #{end}
+    </select>
+
+    <select id="countAppointments" resultType="long">
+        SELECT COUNT(1)
+        FROM consultation_appointment
+        WHERE appointment_date BETWEEN #{start} AND #{end}
+    </select>
+
+    <select id="countPendingAppointments" resultType="long">
+        SELECT COUNT(1)
+        FROM consultation_appointment
+        WHERE appointment_status = 'PENDING'
+    </select>
+
+    <select id="countCrisisReports" resultType="long">
+        SELECT COUNT(1)
+        FROM crisis_report
+        WHERE report_time BETWEEN #{start} AND #{end}
+    </select>
+
+    <select id="countRegistered" resultType="long">
+        SELECT COUNT(1)
+        FROM student_info
+    </select>
+
+    <select id="countVisited" resultType="long">
+        SELECT COUNT(DISTINCT student_id)
+        FROM consultation_appointment
+        WHERE appointment_status = 'COMPLETED'
+          AND appointment_date BETWEEN #{start} AND #{end}
+    </select>
+
+    <select id="countCases" resultType="long">
+        SELECT COUNT(1)
+        FROM consultation_case
+        WHERE created_at BETWEEN #{start} AND #{end}
+    </select>
+
+    <select id="countLongTermConsultations" resultType="long">
+        SELECT COUNT(1)
+        FROM long_term_consultation_request
+        WHERE request_status = 'APPROVED'
+          AND created_at BETWEEN #{start} AND #{end}
+    </select>
+
+    <select id="collegeStats" resultType="sasu.platform.mhm.pojo.vo.StatsCollegeItemVO">
+        SELECT
+            o.org_id     AS collegeId,
+            o.org_name   AS collegeName,
+            COUNT(DISTINCT s.student_id)                                  AS studentCount,
+            COUNT(DISTINCT ca.appointment_id)                              AS appointmentCount,
+            COUNT(DISTINCT cr.report_id)                                   AS crisisCount
+        FROM organization o
+                 LEFT JOIN student_info s ON o.org_id = s.college_id
+                 LEFT JOIN consultation_appointment ca
+                           ON ca.student_id = s.student_id
+                               AND ca.appointment_date BETWEEN #{start} AND #{end}
+                 LEFT JOIN crisis_report cr
+                           ON cr.student_id = s.student_id
+                               AND cr.report_time BETWEEN #{start} AND #{end}
+        WHERE o.org_type = 'COLLEGE'
+        GROUP BY o.org_id, o.org_name
+        ORDER BY studentCount DESC
+    </select>
+
+    <select id="trendStats" resultType="sasu.platform.mhm.pojo.vo.StatsTrendPointVO">
+        SELECT
+            DATE(a.appointment_date) AS date,
+            COUNT(a.appointment_id)  AS appointments,
+            COALESCE((
+                SELECT COUNT(1)
+                FROM crisis_report c
+                WHERE DATE(c.report_time) = DATE(a.appointment_date)
+            ), 0)                     AS crisisReports
+        FROM consultation_appointment a
+        WHERE a.appointment_date BETWEEN #{start} AND #{end}
+        GROUP BY DATE(a.appointment_date)
+        ORDER BY DATE(a.appointment_date)
+    </select>
+
+</mapper>
+
+

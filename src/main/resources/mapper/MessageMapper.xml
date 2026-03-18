@@ -1,0 +1,158 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.MessageMapper">
+
+    <resultMap id="MessageVOResultMap" type="sasu.platform.mhm.pojo.vo.MessageVO">
+        <id property="id" column="message_id"/>
+        <result property="type" column="message_type"/>
+        <result property="title" column="title"/>
+        <result property="content" column="content"/>
+        <result property="read" column="is_read"/>
+        <result property="createTime" column="created_at"/>
+        <result property="readAt" column="read_at"/>
+        <result property="link" column="link"/>
+        <result property="priority" column="priority"/>
+    </resultMap>
+
+    <!-- 查询消息列表 -->
+    <select id="selectMessageList" resultMap="MessageVOResultMap">
+        SELECT
+            message_id,
+            message_type,
+            title,
+            content,
+            is_read,
+            created_at,
+            read_at,
+            link,
+            COALESCE(priority, 0) as priority
+        FROM system_message
+        <where>
+            <if test="query.userId != null and query.userId != ''">
+                AND user_id = #{query.userId}
+            </if>
+            <if test="query.type != null and query.type != ''">
+                AND message_type = #{query.type}
+            </if>
+            <if test="query.read != null">
+                AND is_read = #{query.read}
+            </if>
+            AND (expires_at IS NULL OR expires_at > NOW())
+        </where>
+        ORDER BY priority DESC, created_at DESC
+    </select>
+
+    <!-- 查询消息详情 -->
+    <select id="selectMessageById" resultMap="MessageVOResultMap">
+        SELECT
+            message_id,
+            message_type,
+            title,
+            content,
+            is_read,
+            created_at,
+            read_at,
+            link,
+            COALESCE(priority, 0) as priority
+        FROM system_message
+        WHERE message_id = #{messageId}
+    </select>
+
+    <!-- 查询未读消息数量 -->
+    <select id="countUnreadMessages" resultType="java.lang.Long">
+        SELECT COUNT(*)
+        FROM system_message
+        <where>
+            user_id = #{userId}
+            AND is_read = 0
+            <if test="type != null and type != ''">
+                AND message_type = #{type}
+            </if>
+            AND (expires_at IS NULL OR expires_at > NOW())
+        </where>
+    </select>
+
+    <!-- 插入消息 -->
+    <insert id="insertMessage">
+        INSERT INTO system_message (
+            message_id,
+            user_id,
+            message_type,
+            title,
+            content,
+            related_id,
+            is_read,
+            scheduled_send_time,
+            sent_at,
+            expires_at,
+            priority,
+            link,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{messageId},
+            #{userId},
+            #{messageType},
+            #{title},
+            #{content},
+            #{relatedId},
+            COALESCE(#{isRead}, 0),
+            #{scheduledSendTime},
+            #{sentAt},
+            #{expiresAt},
+            COALESCE(#{priority}, 0),
+            #{link},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <!-- 批量标记已读 -->
+    <update id="markAsRead">
+        UPDATE system_message
+        SET is_read = 1,
+            read_at = NOW(),
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+        AND message_id IN
+        <foreach collection="messageIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 批量标记未读 -->
+    <update id="markAsUnread">
+        UPDATE system_message
+        SET is_read = 0,
+            read_at = NULL,
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+        AND message_id IN
+        <foreach collection="messageIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </update>
+
+    <!-- 全部标记已读 -->
+    <update id="markAllAsRead">
+        UPDATE system_message
+        SET is_read = 1,
+            read_at = NOW(),
+            updated_at = NOW()
+        WHERE user_id = #{userId}
+        AND is_read = 0
+        AND (expires_at IS NULL OR expires_at > NOW())
+    </update>
+
+    <!-- 批量删除消息 -->
+    <delete id="deleteMessages">
+        DELETE FROM system_message
+        WHERE user_id = #{userId}
+        AND message_id IN
+        <foreach collection="messageIds" item="id" open="(" separator="," close=")">
+            #{id}
+        </foreach>
+    </delete>
+
+</mapper>
+

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.ConsultationApprovalMapper">
+
+    <select id="selectConsultationApprovalList"
+            resultType="sasu.platform.mhm.pojo.vo.ConsultationApprovalVO">
+        SELECT
+            r.request_id                                        AS id,
+            u.real_name                                         AS studentName,
+            si.student_number                                   AS studentId,
+            o.org_name                                          AS collegeName,
+            cu.real_name                                        AS counselorName,
+            r.request_reason                                    AS requestReason,
+            r.proposed_sessions                                 AS proposedSessions,
+            r.request_status                                    AS requestStatus,
+            CASE r.request_status
+                WHEN 'PENDING' THEN '待审批'
+                WHEN 'APPROVED' THEN '已批准'
+                WHEN 'REJECTED' THEN '已拒绝'
+                ELSE '未知'
+                END                                             AS statusText,
+            r.approved_sessions                                 AS approvedSessions,
+            r.approved_frequency                                AS approvedFrequency,
+            DATE_FORMAT(r.start_date, '%Y-%m-%d')               AS startDate,
+            DATE_FORMAT(r.end_date, '%Y-%m-%d')                 AS endDate,
+            DATE_FORMAT(r.created_at, '%Y-%m-%d %H:%i')         AS createdAt
+        FROM long_term_consultation_request r
+                 JOIN student_info si ON r.student_id = si.student_id
+                 JOIN user u ON si.user_id = u.user_id
+                 LEFT JOIN organization o ON si.college_id = o.org_id
+                 LEFT JOIN counselor_info c ON r.counselor_id = c.counselor_id
+                 LEFT JOIN user cu ON c.counselor_id = cu.user_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (u.real_name LIKE CONCAT('%', #{keyword}, '%')
+                    OR si.student_number LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <!-- 使用 and 代替 &&，并与 ConsultationApprovalQueryDTO.approvalStatus 对齐 -->
+            <if test="approvalStatus != null and approvalStatus != '' and approvalStatus != 'all'">
+                AND r.request_status = #{approvalStatus}
+            </if>
+        </where>
+        ORDER BY r.created_at DESC
+    </select>
+
+    <update id="approve">
+        UPDATE long_term_consultation_request
+        SET request_status    = 'APPROVED',
+            approver_id       = #{approverId},
+            approval_notes    = #{comment},
+            approved_sessions = #{approvedSessions},
+            approved_frequency = #{approvedFrequency},
+            start_date        = #{startDate},
+            end_date          = #{endDate},
+            updated_at        = NOW()
+        WHERE request_id = #{id}
+    </update>
+
+    <update id="reject">
+        UPDATE long_term_consultation_request
+        SET request_status = 'REJECTED',
+            approver_id    = #{approverId},
+            approval_notes = #{comment},
+            updated_at     = NOW()
+        WHERE request_id = #{id}
+    </update>
+
+</mapper>
+
+

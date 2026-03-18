@@ -1,0 +1,267 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.RecordMapper">
+
+    <resultMap id="RecordVOResultMap" type="sasu.platform.mhm.pojo.vo.RecordVO">
+        <id property="id" column="record_id"/>
+        <result property="appointmentId" column="appointment_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="studentName" column="student_name"/>
+        <result property="counselorId" column="counselor_id"/>
+        <result property="counselorName" column="counselor_name"/>
+        <result property="recordDate" column="record_date"/>
+        <result property="sessionNumber" column="session_number"/>
+        <result property="presentingProblem" column="presenting_problem"/>
+        <result property="content" column="session_content"/>
+        <result property="summary" column="summary"/>
+        <result property="problemType" column="problem_type"/>
+        <result property="counselorObservations" column="counselor_observations"/>
+        <result property="interventionMethods" column="intervention_methods"/>
+        <result property="homeworkAssignment" column="homework_assignment"/>
+        <result property="nextSessionPlan" column="next_session_plan"/>
+        <result property="counselorNotes" column="counselor_notes"/>
+        <result property="handwrittenRecordUrl" column="handwritten_record_url"/>
+        <result property="confidentialLevel" column="confidential_level"/>
+        <result property="status" column="record_status"/>
+        <result property="createTime" column="created_at"/>
+        <result property="updateTime" column="updated_at"/>
+    </resultMap>
+
+    <!-- 查询咨询记录列表 -->
+    <select id="selectRecordList" resultMap="RecordVOResultMap">
+        SELECT
+            cr.record_id,
+            cr.appointment_id,
+            cr.student_id,
+            su.real_name as student_name,
+            cr.counselor_id,
+            cu.real_name as counselor_name,
+            cr.record_date,
+            cr.session_number,
+            cr.presenting_problem,
+            cr.session_content,
+            LEFT(cr.session_content, 100) as summary,
+            cr.counselor_observations,
+            cr.intervention_methods,
+            cr.homework_assignment,
+            cr.next_session_plan,
+            cr.counselor_notes,
+            cr.handwritten_record_url,
+            cr.confidential_level,
+            cr.record_status,
+            cr.created_at,
+            cr.updated_at
+        FROM consultation_record cr
+        LEFT JOIN user su ON cr.student_id = su.user_id
+        LEFT JOIN counselor_info ci ON cr.counselor_id = ci.counselor_id
+        LEFT JOIN user cu ON ci.counselor_id = cu.user_id
+        <where>
+            <if test="query.counselorId != null and query.counselorId != ''">
+                AND cr.counselor_id = #{query.counselorId}
+            </if>
+            <if test="query.studentId != null and query.studentId != ''">
+                AND cr.student_id = #{query.studentId}
+            </if>
+            <if test="query.appointmentId != null and query.appointmentId != ''">
+                AND cr.appointment_id = #{query.appointmentId}
+            </if>
+            <if test="query.recordStatus != null and query.recordStatus != ''">
+                AND cr.record_status = #{query.recordStatus}
+            </if>
+            <if test="query.startDate != null and query.startDate != ''">
+                AND cr.record_date >= #{query.startDate}
+            </if>
+            <if test="query.endDate != null and query.endDate != ''">
+                AND cr.record_date &lt;= #{query.endDate}
+            </if>
+        </where>
+        ORDER BY cr.record_date DESC, cr.created_at DESC
+    </select>
+
+    <!-- 查询咨询记录详情 -->
+    <select id="selectRecordById" resultMap="RecordVOResultMap">
+        SELECT
+            cr.record_id,
+            cr.appointment_id,
+            cr.student_id,
+            su.real_name as student_name,
+            cr.counselor_id,
+            cu.real_name as counselor_name,
+            cr.record_date,
+            cr.session_number,
+            cr.presenting_problem,
+            cr.session_content,
+            LEFT(cr.session_content, 100) as summary,
+            cr.counselor_observations,
+            cr.intervention_methods,
+            cr.homework_assignment,
+            cr.next_session_plan,
+            cr.counselor_notes,
+            cr.handwritten_record_url,
+            cr.confidential_level,
+            cr.record_status,
+            cr.attachments,
+            cr.created_at,
+            cr.updated_at
+        FROM consultation_record cr
+        LEFT JOIN user su ON cr.student_id = su.user_id
+        LEFT JOIN counselor_info ci ON cr.counselor_id = ci.counselor_id
+        LEFT JOIN user cu ON ci.counselor_id = cu.user_id
+        WHERE cr.record_id = #{recordId}
+    </select>
+
+    <!-- 根据预约ID查询记录 -->
+    <select id="selectRecordByAppointmentId" resultMap="RecordVOResultMap">
+        SELECT
+            cr.record_id,
+            cr.appointment_id,
+            cr.student_id,
+            su.real_name as student_name,
+            cr.counselor_id,
+            cu.real_name as counselor_name,
+            cr.record_date,
+            cr.session_number,
+            cr.presenting_problem,
+            cr.session_content,
+            LEFT(cr.session_content, 100) as summary,
+            cr.counselor_observations,
+            cr.intervention_methods,
+            cr.homework_assignment,
+            cr.next_session_plan,
+            cr.counselor_notes,
+            cr.handwritten_record_url,
+            cr.confidential_level,
+            cr.record_status,
+            cr.attachments,
+            cr.created_at,
+            cr.updated_at
+        FROM consultation_record cr
+        LEFT JOIN user su ON cr.student_id = su.user_id
+        LEFT JOIN counselor_info ci ON cr.counselor_id = ci.counselor_id
+        LEFT JOIN user cu ON ci.counselor_id = cu.user_id
+        WHERE cr.appointment_id = #{appointmentId}
+    </select>
+
+    <!-- 插入咨询记录 -->
+    <insert id="insertRecord">
+        INSERT INTO consultation_record (
+            record_id,
+            appointment_id,
+            counselor_id,
+            student_id,
+            record_date,
+            session_number,
+            presenting_problem,
+            session_content,
+            counselor_observations,
+            intervention_methods,
+            homework_assignment,
+            next_session_plan,
+            counselor_notes,
+            handwritten_record_url,
+            confidential_level,
+            record_status,
+            attachments,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{recordId},
+            #{appointmentId},
+            #{counselorId},
+            #{studentId},
+            #{recordDate},
+            COALESCE(#{sessionNumber}, 1),
+            #{presentingProblem},
+            #{sessionContent},
+            #{counselorObservations},
+            #{interventionMethods},
+            #{homeworkAssignment},
+            #{nextSessionPlan},
+            #{counselorNotes},
+            #{handwrittenRecordUrl},
+            COALESCE(#{confidentialLevel}, 'NORMAL'),
+            COALESCE(#{recordStatus}, 'DRAFT'),
+            #{attachments},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <!-- 更新咨询记录 -->
+    <update id="updateRecord">
+        UPDATE consultation_record
+        <set>
+            <if test="sessionContent != null">
+                session_content = #{sessionContent},
+            </if>
+            <if test="counselorObservations != null">
+                counselor_observations = #{counselorObservations},
+            </if>
+            <if test="interventionMethods != null">
+                intervention_methods = #{interventionMethods},
+            </if>
+            <if test="homeworkAssignment != null">
+                homework_assignment = #{homeworkAssignment},
+            </if>
+            <if test="nextSessionPlan != null">
+                next_session_plan = #{nextSessionPlan},
+            </if>
+            <if test="counselorNotes != null">
+                counselor_notes = #{counselorNotes},
+            </if>
+            <if test="presentingProblem != null">
+                presenting_problem = #{presentingProblem},
+            </if>
+            <if test="confidentialLevel != null">
+                confidential_level = #{confidentialLevel},
+            </if>
+            <if test="recordStatus != null">
+                record_status = #{recordStatus},
+            </if>
+            <if test="attachments != null">
+                attachments = #{attachments},
+            </if>
+            updated_at = NOW()
+        </set>
+        WHERE record_id = #{recordId}
+    </update>
+
+    <!-- 自动保存（更新草稿） -->
+    <update id="autosaveRecord">
+        UPDATE consultation_record
+        <set>
+            <if test="sessionContent != null">
+                session_content = #{sessionContent},
+            </if>
+            <if test="counselorObservations != null">
+                counselor_observations = #{counselorObservations},
+            </if>
+            <if test="interventionMethods != null">
+                intervention_methods = #{interventionMethods},
+            </if>
+            <if test="homeworkAssignment != null">
+                homework_assignment = #{homeworkAssignment},
+            </if>
+            <if test="nextSessionPlan != null">
+                next_session_plan = #{nextSessionPlan},
+            </if>
+            <if test="counselorNotes != null">
+                counselor_notes = #{counselorNotes},
+            </if>
+            <if test="presentingProblem != null">
+                presenting_problem = #{presentingProblem},
+            </if>
+            <if test="confidentialLevel != null">
+                confidential_level = #{confidentialLevel},
+            </if>
+            <if test="attachments != null">
+                attachments = #{attachments},
+            </if>
+            record_status = 'DRAFT',
+            updated_at = NOW()
+        </set>
+        WHERE record_id = #{recordId}
+    </update>
+
+</mapper>
+

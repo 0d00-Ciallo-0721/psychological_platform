@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.CaseMapper">
+
+    <resultMap id="CaseVOResultMap" type="sasu.platform.mhm.pojo.vo.CaseVO">
+        <id property="id" column="case_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="studentName" column="student_name"/>
+        <result property="counselorId" column="counselor_id"/>
+        <result property="counselorName" column="counselor_name"/>
+        <result property="caseTitle" column="case_title"/>
+        <result property="status" column="case_status"/>
+        <result property="problemType" column="problem_type"/>
+        <result property="description" column="case_description"/>
+        <result property="startDate" column="start_date"/>
+        <result property="closeDate" column="close_date"/>
+        <result property="totalSessions" column="total_sessions"/>
+        <result property="createTime" column="created_at"/>
+        <result property="updateTime" column="updated_at"/>
+    </resultMap>
+
+    <!-- 查询个案列表 -->
+    <select id="selectCaseList" resultMap="CaseVOResultMap">
+        SELECT
+            cc.case_id,
+            cc.student_id,
+            su.real_name as student_name,
+            cc.counselor_id,
+            cu.real_name as counselor_name,
+            cc.case_title,
+            cc.case_status,
+            cc.problem_type,
+            cc.case_description,
+            cc.start_date,
+            cc.close_date,
+            cc.total_sessions,
+            cc.created_at,
+            cc.updated_at
+        FROM consultation_case cc
+        LEFT JOIN user su ON cc.student_id = su.user_id
+        LEFT JOIN counselor_info ci ON cc.counselor_id = ci.counselor_id
+        LEFT JOIN user cu ON ci.counselor_id = cu.user_id
+        <where>
+            <if test="query.counselorId != null and query.counselorId != ''">
+                AND cc.counselor_id = #{query.counselorId}
+            </if>
+            <if test="query.studentId != null and query.studentId != ''">
+                AND cc.student_id = #{query.studentId}
+            </if>
+            <if test="query.caseStatus != null and query.caseStatus != ''">
+                AND cc.case_status = #{query.caseStatus}
+            </if>
+            <if test="query.problemType != null and query.problemType != ''">
+                AND cc.problem_type = #{query.problemType}
+            </if>
+        </where>
+        ORDER BY cc.created_at DESC
+    </select>
+
+    <!-- 查询个案详情 -->
+    <select id="selectCaseById" resultMap="CaseVOResultMap">
+        SELECT
+            cc.case_id,
+            cc.student_id,
+            su.real_name as student_name,
+            cc.counselor_id,
+            cu.real_name as counselor_name,
+            cc.case_title,
+            cc.case_status,
+            cc.problem_type,
+            cc.case_description,
+            cc.start_date,
+            cc.close_date,
+            cc.total_sessions,
+            cc.created_at,
+            cc.updated_at
+        FROM consultation_case cc
+        LEFT JOIN user su ON cc.student_id = su.user_id
+        LEFT JOIN counselor_info ci ON cc.counselor_id = ci.counselor_id
+        LEFT JOIN user cu ON ci.counselor_id = cu.user_id
+        WHERE cc.case_id = #{caseId}
+    </select>
+
+    <!-- 插入个案 -->
+    <insert id="insertCase">
+        INSERT INTO consultation_case (
+            case_id,
+            student_id,
+            counselor_id,
+            case_title,
+            case_status,
+            problem_type,
+            case_description,
+            start_date,
+            total_sessions,
+            created_at,
+            updated_at
+        ) VALUES (
+            #{caseId},
+            #{studentId},
+            #{counselorId},
+            #{caseTitle},
+            COALESCE(#{caseStatus}, 'ONGOING'),
+            #{problemType},
+            #{caseDescription},
+            #{startDate},
+            COALESCE(#{totalSessions}, 0),
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <!-- 更新个案 -->
+    <update id="updateCase">
+        UPDATE consultation_case
+        <set>
+            <if test="caseTitle != null">
+                case_title = #{caseTitle},
+            </if>
+            <if test="caseStatus != null">
+                case_status = #{caseStatus},
+            </if>
+            <if test="problemType != null">
+                problem_type = #{problemType},
+            </if>
+            <if test="caseDescription != null">
+                case_description = #{caseDescription},
+            </if>
+            <if test="closeDate != null">
+                close_date = #{closeDate},
+            </if>
+            updated_at = NOW()
+        </set>
+        WHERE case_id = #{caseId}
+    </update>
+
+    <!-- 查询个案统计 -->
+    <select id="selectCaseStats" resultType="java.util.Map">
+        SELECT
+            case_status as status,
+            COUNT(*) as count
+        FROM consultation_case
+        <where>
+            <if test="counselorId != null and counselorId != ''">
+                AND counselor_id = #{counselorId}
+            </if>
+        </where>
+        GROUP BY case_status
+    </select>
+
+</mapper>
+

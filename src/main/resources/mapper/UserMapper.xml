@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.UserMapper">
+    <resultMap id="UserResultMap" type="sasu.platform.mhm.pojo.entity.User">
+        <!-- 主键映射 -->
+        <id column="user_id" property="userId" jdbcType="CHAR"/>
+
+        <!-- 基本字段映射 -->
+        <result column="username" property="username" jdbcType="VARCHAR"/>
+        <result column="password_hash" property="passwordHash" jdbcType="VARCHAR"/>
+        <result column="email" property="email" jdbcType="VARCHAR"/>
+        <result column="phone" property="phone" jdbcType="VARCHAR"/>
+        <result column="real_name" property="realName" jdbcType="VARCHAR"/>
+        <result column="role_name" property="role_name" jdbcType="VARCHAR"/>
+        <result column="role_code" property="role_code" jdbcType="VARCHAR"/>
+
+        <!-- 枚举/状态字段 -->
+        <result column="gender" property="gender" jdbcType="TINYINT"/>
+        <result column="account_status" property="accountStatus" jdbcType="TINYINT"/>
+
+        <!-- 日期时间字段 -->
+        <result column="birth_date" property="birthDate" jdbcType="DATE"/>
+        <result column="last_login_time" property="lastLoginTime" jdbcType="TIMESTAMP"/>
+        <result column="created_at" property="createdAt" jdbcType="TIMESTAMP"/>
+        <result column="updated_at" property="updatedAt" jdbcType="TIMESTAMP"/>
+        <result column="deleted_at" property="deletedAt" jdbcType="TIMESTAMP"/>
+
+        <!-- 其他字段 -->
+        <result column="avatar_url" property="avatarUrl" jdbcType="VARCHAR"/>
+        <result column="id_card" property="idCard" jdbcType="VARCHAR"/>
+        <result column="wechat_openid" property="wechatOpenid" jdbcType="VARCHAR"/>
+        <result column="wechat_unionid" property="wechatUnionid" jdbcType="VARCHAR"/>
+    </resultMap>
+    <update id="updateById">
+        UPDATE user
+        SET
+            last_login_time = now()
+    </update>
+    <select id="selectByUsername" resultMap="UserResultMap">
+        SELECT
+            u.user_id,
+            u.username,
+            u.password_hash,
+            u.email,
+            u.phone,
+            u.real_name,
+            u.gender,
+            u.birth_date,
+            u.avatar_url,
+            u.id_card,
+            u.wechat_openid,
+            u.wechat_unionid,
+            u.account_status,
+            u.last_login_time,
+            u.created_at,
+            u.updated_at,
+            u.deleted_at,
+            r.role_name,
+            r.role_code
+        FROM
+            user u
+                LEFT JOIN
+            user_role_mapping urm ON u.user_id = urm.user_id
+                LEFT JOIN
+            user_role r ON urm.role_id = r.role_id
+        WHERE
+            u.username = #{username}
+          AND u.deleted_at IS NULL
+    </select>
+    <select id="selectById" resultMap="UserResultMap">
+        SELECT
+            u.user_id,
+            u.username,
+            u.password_hash,
+            u.email,
+            u.phone,
+            u.real_name,
+            u.gender,
+            u.birth_date,
+            u.avatar_url,
+            u.id_card,
+            u.wechat_openid,
+            u.wechat_unionid,
+            u.account_status,
+            u.last_login_time,
+            u.created_at,
+            u.updated_at,
+            u.deleted_at,
+            r.role_name,
+            r.role_code
+        FROM
+            user u
+                LEFT JOIN
+            user_role_mapping urm ON u.user_id = urm.user_id
+                LEFT JOIN
+            user_role r ON urm.role_id = r.role_id
+        WHERE
+            u.user_id = #{userId}
+          AND u.deleted_at IS NULL
+    </select>
+
+    <!-- 管理端用户列表查询 -->
+    <select id="selectAdminUserList" resultMap="UserResultMap">
+        SELECT
+            u.user_id,
+            u.username,
+            u.password_hash,
+            u.email,
+            u.phone,
+            u.real_name,
+            u.gender,
+            u.birth_date,
+            u.avatar_url,
+            u.id_card,
+            u.wechat_openid,
+            u.wechat_unionid,
+            u.account_status,
+            u.last_login_time,
+            u.created_at,
+            u.updated_at,
+            u.deleted_at,
+            r.role_name,
+            r.role_code
+        FROM user u
+                 LEFT JOIN user_role_mapping urm ON u.user_id = urm.user_id
+                 LEFT JOIN user_role r ON urm.role_id = r.role_id
+        WHERE u.deleted_at IS NULL
+        ORDER BY u.created_at DESC
+    </select>
+</mapper>

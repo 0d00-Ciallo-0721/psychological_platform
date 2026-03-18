@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.ParentMapper">
+
+    <resultMap id="ChildVOResultMap" type="sasu.platform.mhm.pojo.vo.ChildVO">
+        <id property="studentId" column="student_id"/>
+        <result property="studentName" column="real_name"/>
+        <result property="studentNumber" column="student_number"/>
+        <result property="college" column="college_name"/>
+        <result property="major" column="major_name"/>
+        <result property="grade" column="grade"/>
+        <result property="className" column="class_name"/>
+        <result property="avatar" column="avatar_url"/>
+    </resultMap>
+
+    <!-- 查询子女列表 -->
+    <select id="selectChildrenList" resultMap="ChildVOResultMap">
+        SELECT
+            u.user_id as student_id,
+            u.real_name,
+            si.student_number,
+            o1.org_name as college_name,
+            si.major_name,
+            si.grade,
+            si.class_name,
+            u.avatar_url
+        FROM parent_student_relation psr
+        JOIN user u ON psr.student_id = u.user_id
+        LEFT JOIN student_info si ON u.user_id = si.student_id
+        LEFT JOIN organization o1 ON si.college_id = o1.org_id
+        WHERE psr.parent_id = #{parentId}
+        AND psr.verification_status = 1
+    </select>
+
+    <!-- 查询子女详情 -->
+    <select id="selectChildDetail" resultMap="ChildVOResultMap">
+        SELECT
+            u.user_id as student_id,
+            u.real_name,
+            si.student_number,
+            o1.org_name as college_name,
+            si.major_name,
+            si.grade,
+            si.class_name,
+            u.avatar_url
+        FROM user u
+        LEFT JOIN student_info si ON u.user_id = si.student_id
+        LEFT JOIN organization o1 ON si.college_id = o1.org_id
+        WHERE u.user_id = #{studentId}
+    </select>
+
+    <!-- 插入家长-子女关联 -->
+    <insert id="insertParentStudentRelation">
+        INSERT INTO parent_student_relation (
+            relation_id,
+            parent_id,
+            student_id,
+            relation_type,
+            verification_status,
+            created_at,
+            updated_at
+        ) VALUES (
+            UUID(),
+            #{parentId},
+            #{studentId},
+            COALESCE(#{relationType}, 'PARENT'),
+            COALESCE(#{verificationStatus}, 0),
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <!-- 删除家长-子女关联 -->
+    <delete id="deleteParentStudentRelation">
+        DELETE FROM parent_student_relation
+        WHERE parent_id = #{parentId}
+        AND student_id = #{studentId}
+    </delete>
+
+    <!-- 查询关联是否存在 -->
+    <select id="selectRelation" resultType="sasu.platform.mhm.pojo.entity.ParentStudentRelation">
+        SELECT * FROM parent_student_relation
+        WHERE parent_id = #{parentId}
+        AND student_id = #{studentId}
+    </select>
+
+    <!-- 根据学生ID查询辅导员 -->
+    <select id="selectCounselorsByStudentId" resultType="sasu.platform.mhm.pojo.vo.CounselorDetailVO">
+        SELECT
+            ci.counselor_id,
+            u.real_name,
+            u.phone,
+            u.email,
+            ci.title,
+            ci.introduction
+        FROM student_info si
+        JOIN organization o ON si.college_id = o.org_id
+        JOIN counselor_info ci ON ci.counselor_id = ci.counselor_id
+        JOIN user u ON ci.counselor_id = u.user_id
+        WHERE si.student_id = #{studentId}
+        LIMIT 1
+    </select>
+
+</mapper>
+

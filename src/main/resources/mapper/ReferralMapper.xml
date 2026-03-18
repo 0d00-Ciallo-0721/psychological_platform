@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.ReferralMapper">
+
+    <select id="selectReferralApprovalList" resultType="sasu.platform.mhm.pojo.vo.ReferralApprovalVO">
+        SELECT
+            r.referral_id                                          AS id,
+            u.real_name                                            AS studentName,
+            si.student_number                                      AS studentId,
+            o.org_name                                             AS collegeName,
+            su.real_name                                           AS sourceCounselorName,
+            tu.real_name                                           AS targetCounselorName,
+            r.target_department                                    AS targetDepartment,
+            r.referral_urgency                                     AS urgency,
+            r.referral_status                                      AS status,
+            CASE r.referral_status
+                WHEN 'PENDING' THEN '待审批'
+                WHEN 'ACCEPTED' THEN '已通过'
+                WHEN 'REJECTED' THEN '已驳回'
+                WHEN 'COMPLETED' THEN '已完成'
+                ELSE '未知'
+                END                                                AS statusText,
+            DATE_FORMAT(r.created_at, '%Y-%m-%d %H:%i')            AS createdAt
+        FROM referral_record r
+                 JOIN student_info si ON r.student_id = si.student_id
+                 JOIN user u ON si.user_id = u.user_id
+                 LEFT JOIN organization o ON si.college_id = o.org_id
+                 LEFT JOIN counselor_info sc ON r.source_counselor_id = sc.counselor_id
+                 LEFT JOIN user su ON sc.counselor_id = su.user_id
+                 LEFT JOIN counselor_info tc ON r.target_counselor_id = tc.counselor_id
+                 LEFT JOIN user tu ON tc.counselor_id = tu.user_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (u.real_name LIKE CONCAT('%', #{keyword}, '%')
+                    OR si.student_number LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="status != null and status != '' and status != 'all'">
+                AND r.referral_status = #{status}
+            </if>
+        </where>
+        ORDER BY r.created_at DESC
+    </select>
+
+    <update id="approveReferral">
+        UPDATE referral_record
+        SET referral_status    = 'ACCEPTED',
+            target_counselor_id = #{param4},
+            target_response    = #{param3},
+            response_date      = NOW(),
+            updated_at         = NOW()
+        WHERE referral_id = #{param1}
+    </update>
+
+    <update id="rejectReferral">
+        UPDATE referral_record
+        SET referral_status = 'REJECTED',
+            target_response = #{param3},
+            response_date   = NOW(),
+            updated_at      = NOW()
+        WHERE referral_id = #{param1}
+    </update>
+
+</mapper>
+
+

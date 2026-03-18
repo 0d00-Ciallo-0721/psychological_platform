@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.PreAssessmentMapper">
+
+    <insert id="insert">
+        INSERT INTO pre_assessment
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            assessment_id,
+            appointment_id,
+            scale_type,
+            scale_name,
+            total_score,
+            <if test="scoreInterpretation != null and scoreInterpretation != ''">
+                score_interpretation,
+            </if>
+            <if test="assessmentData != null and assessmentData != ''">
+                assessment_data,
+            </if>
+            <if test="handwrittenScaleUrl != null and handwrittenScaleUrl != ''">
+                handwritten_scale_url,
+            </if>
+            completed_at,
+            created_at
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            UUID(),
+            #{appointmentId},
+            #{scaleType},
+            #{scaleName},
+            #{totalScore},
+            <if test="scoreInterpretation != null and scoreInterpretation != ''">
+                #{scoreInterpretation},
+            </if>
+            <if test="assessmentData != null and assessmentData != ''">
+                CAST(#{assessmentData} AS JSON),
+            </if>
+            <if test="handwrittenScaleUrl != null and handwrittenScaleUrl != ''">
+                #{handwrittenScaleUrl},
+            </if>
+            #{completedAt},
+            NOW()
+        </trim>
+    </insert>
+
+</mapper>
+
+

@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.ConsulateMapper">
+    <resultMap id="CounselorDetailVOMap" type="sasu.platform.mhm.pojo.vo.CounselorVO">
+        <!-- 映射其他CounselorInfo字段 -->
+        <result property="title" column="title"/>
+        <result property="qualificationLevel" column="qualification_level"/>
+        <result property="educationBackground" column="education_background"/>
+        <result property="graduationSchool" column="graduation_school"/>
+        <result property="majorField" column="major_field"/>
+        <result property="counselingApproach" column="counseling_approach"/>
+        <result property="expertiseAreas" column="expertise_areas"/>
+        <result property="workExperienceYears" column="work_experience_years"/>
+        <result property="isFullTime" column="is_full_time"/>
+        <result property="counselorStatus" column="counselor_status"/>
+        <!-- 映射User对象 -->
+        <association property="userVO" javaType="sasu.platform.mhm.pojo.vo.UserVO">
+            <id property="userId" column="user_id"/>
+            <result property="username" column="username"/>
+            <result property="realName" column="real_name"/>
+            <result property="gender" column="gender"/>
+            <result property="avatarUrl" column="avatar_url"/>
+            <result property="accountStatus" column="account_status"/>
+        </association>
+    </resultMap>
+    <!-- ConsultationSchedule嵌套结果映射定义 -->
+    <resultMap id="consultationTimeMap" type="sasu.platform.mhm.pojo.entity.ConsultationSchedule$ConsultationTime">
+        <result property="startTime" column="start_time"/>
+        <result property="endTime" column="end_time"/>
+        <result property="slot_duration" column="slot_duration"/>
+        <result property="available_slots" column="available_slots"/>
+        <result property="status" column="status"/>
+        <result property="schedule_type" column="schedule_type"/>
+        <result property="reservationLocation" column="reservation_location"/>
+    </resultMap>
+
+    <resultMap id="consultationScheduleDateMap" type="sasu.platform.mhm.pojo.entity.ConsultationSchedule$ConsultationScheduleDate">
+        <result property="schedule_date" column="schedule_date"/>
+        <collection property="consultationTime" resultMap="consultationTimeMap"/>
+    </resultMap>
+
+    <resultMap id="consultationScheduleMap" type="sasu.platform.mhm.pojo.entity.ConsultationSchedule">
+        <result property="userId" column="counselor_id"/>
+        <collection property="consultationScheduleDates" resultMap="consultationScheduleDateMap"/>
+    </resultMap>
+    <insert id="insertConsultationSchedule">
+        -- 批量插入咨询师排班数据
+        INSERT INTO counselor_schedule (
+        schedule_id,
+        counselor_id,
+        schedule_date,
+        start_time,
+        end_time,
+        slot_duration,
+        available_slots,
+        schedule_type,
+        reservation_location,
+        status,
+        created_by,
+        created_at,
+        updated_at
+        ) VALUES
+        <foreach collection="consultationScheduleDates" item="scheduleDate" separator=",">
+            <foreach collection="scheduleDate.consultationTime" item="time" separator=",">
+                (
+                UUID(), -- 自动生成UUID作为主键
+                #{userId},
+                #{scheduleDate.schedule_date},
+                #{time.startTime},
+                #{time.endTime},
+                #{time.slot_duration},
+                #{time.available_slots},
+                #{time.schedule_type},
+                #{time.reservationLocation},
+                #{time.status},
+                #{userId},
+                NOW(),
+                NOW()
+                )
+            </foreach>
+        </foreach>
+    </insert>
+    <insert id="insertAppointment">
+        -- 插入预约信息
+        INSERT INTO consultation_appointment(
+            appointment_id,
+            student_id,
+            schedule_id,
+            appointment_type,
+            consultation_mode,
+            location,
+            appointment_status,
+            is_urgent,
+            notes,
+            created_at,
+            updated_at
+        ) VALUES (
+                  UUID(),
+                  #{userId},
+                  #{scheduleId},
+                  #{appointmentType},
+                  #{consultationMode},
+                  #{location},
+                  #{appointmentStatus},
+                  #{isUrgent},
+                  #{notes},
+                  NOW(),
+                  NOW()
+                         )
+    </insert>
+    <select id="getScheduleInfoByScheduleId" resultType="sasu.platform.mhm.pojo.entity.ConsultationSchedule">
+        SELECT * FROM counselor_schedule WHERE schedule_id = #{scheduleId}
+    </select>
+    <select id="getScheduleByParams" resultType="sasu.platform.mhm.pojo.entity.ConsultationSchedule">
+        SELECT
+            schedule_id,
+            counselor_id,
+            schedule_date,
+            start_time,
+            end_time,
+            slot_duration,
+            available_slots,
+            schedule_type
+            from counselor_schedule
+    </select>
+    <select id="counselorList" resultMap="CounselorDetailVOMap">
+        SELECT
+            -- 用户基本信息
+            u.user_id,
+            u.username,
+            u.real_name,
+            u.gender,
+            u.avatar_url,
+            u.account_status,
+            -- 咨询师扩展信息
+            ci.title,
+            ci.qualification_level,
+            ci.education_background,
+            ci.graduation_school,
+            ci.major_field,
+            ci.counseling_approach,
+            ci.expertise_areas,
+            ci.work_experience_years,
+            ci.is_full_time,
+            ci.counselor_status
+        FROM user u
+                 JOIN counselor_info ci ON u.user_id = ci.counselor_id
+        WHERE u.account_status = 1 AND ci.counselor_status = 1
+        ORDER BY ci.created_at DESC  -- 按咨询师创建时间降序排列
+    </select>
+    <select id="getCounselorDetail" resultType="sasu.platform.mhm.pojo.vo.CounselorDetailVO">
+        SELECT
+            -- 用户基本信息
+            u.user_id,
+            u.username,
+            u.real_name,
+            u.gender,
+            u.avatar_url,
+            u.account_status,
+            -- 咨询师扩展信息
+            ci.counselor_id,
+            ci.employee_number,
+            ci.title,
+            ci.qualification_level,
+            ci.certificate_number,
+            ci.certificate_image,
+            ci.education_background,
+            ci.graduation_school,
+            ci.major_field,
+            ci.counseling_approach,
+            ci.expertise_areas,
+            ci.introduction,
+            ci.work_experience_years,
+            ci.is_full_time,
+            ci.counselor_status,
+            ci.max_cases_per_week,
+            ci.created_at AS counselor_created_at
+        FROM
+            counselor_info ci
+        JOIN user u ON ci.counselor_id = u.user_id
+        WHERE
+            ci.counselor_id = #{counselorId}
+    </select>
+    <select id="getScheduleByCounselorId" resultMap="consultationScheduleMap">
+        SELECT
+            cs.counselor_id,
+            cs.schedule_date,
+            cs.start_time,
+            cs.end_time,
+            cs.slot_duration,
+            cs.available_slots,
+            cs.status,
+            cs.schedule_type,
+            cs.reservation_location
+        FROM
+            counselor_schedule cs
+        WHERE
+            cs.counselor_id = #{counselorId}
+          AND cs.status != 0
+        ORDER BY
+            cs.schedule_date,
+            cs.start_time
+    </select>
+
+    <!-- 预约详情结果映射 -->
+    <resultMap id="AppointmentDetailVOMap" type="sasu.platform.mhm.pojo.vo.AppointmentDetailVO">
+        <id property="id" column="appointment_id"/>
+        <result property="studentId" column="student_id"/>
+        <result property="studentName" column="student_name"/>
+        <result property="counselorId" column="counselor_id"/>
+        <result property="counselorName" column="counselor_name"/>
+        <result property="scheduleId" column="schedule_id"/>
+        <result property="appointmentDate" column="appointment_date"/>
+        <result property="appointmentTime" column="appointment_time"/>
+        <result property="appointmentType" column="appointment_type"/>
+        <result property="consultationMode" column="consultation_mode"/>
+        <result property="location" column="location"/>
+        <result property="status" column="appointment_status"/>
+        <result property="cancellationReason" column="cancellation_reason"/>
+        <result property="cancelledBy" column="cancelled_by"/>
+        <result property="isUrgent" column="is_urgent"/>
+        <result property="notes" column="notes"/>
+        <result property="createTime" column="created_at"/>
+        <result property="updateTime" column="updated_at"/>
+    </resultMap>
+
+    <!-- 查询预约详情 -->
+    <select id="getAppointmentById" resultMap="AppointmentDetailVOMap">
+        SELECT
+            ca.appointment_id,
+            ca.student_id,
+            u.real_name as student_name,
+            cs.counselor_id,
+            cu.real_name as counselor_name,
+            ca.schedule_id,
+            DATE(cs.schedule_date) as appointment_date,
+            CONCAT(cs.start_time, '-', cs.end_time) as appointment_time,
+            ca.appointment_type,
+            ca.consultation_mode,
+            ca.location,
+            ca.appointment_status,
+            ca.cancellation_reason,
+            ca.cancelled_by,
+            ca.is_urgent,
+            ca.notes,
+            ca.created_at,
+            ca.updated_at
+        FROM consultation_appointment ca
+        LEFT JOIN counselor_schedule cs ON ca.schedule_id = cs.schedule_id
+        LEFT JOIN user u ON ca.student_id = u.user_id
+        LEFT JOIN counselor_info ci ON cs.counselor_id = ci.counselor_id
+        LEFT JOIN user cu ON ci.counselor_id = cu.user_id
+        WHERE ca.appointment_id = #{appointmentId}
+    </select>
+
+    <!-- 更新预约状态 -->
+    <update id="updateAppointmentStatus">
+        UPDATE consultation_appointment
+        SET appointment_status = #{status},
+            <if test="cancellationReason != null">
+                cancellation_reason = #{cancellationReason},
+            </if>
+            <if test="cancelledBy != null">
+                cancelled_by = #{cancelledBy},
+            </if>
+            updated_at = NOW()
+        WHERE appointment_id = #{appointmentId}
+    </update>
+
+    <!-- 查询预约列表 -->
+    <select id="listAppointments" resultMap="AppointmentDetailVOMap">
+        SELECT
+            ca.appointment_id,
+            ca.student_id,
+            u.real_name as student_name,
+            cs.counselor_id,
+            cu.real_name as counselor_name,
+            ca.schedule_id,
+            DATE(cs.schedule_date) as appointment_date,
+            CONCAT(cs.start_time, '-', cs.end_time) as appointment_time,
+            ca.appointment_type,
+            ca.consultation_mode,
+            ca.location,
+            ca.appointment_status,
+            ca.cancellation_reason,
+            ca.cancelled_by,
+            ca.is_urgent,
+            ca.notes,
+            ca.created_at,
+            ca.updated_at
+        FROM consultation_appointment ca
+        LEFT JOIN counselor_schedule cs ON ca.schedule_id = cs.schedule_id
+        LEFT JOIN user u ON ca.student_id = u.user_id
+        LEFT JOIN counselor_info ci ON cs.counselor_id = ci.counselor_id
+        LEFT JOIN user cu ON ci.counselor_id = cu.user_id
+        <where>
+            <if test="userId != null and userId != ''">
+                AND ca.student_id = #{userId}
+            </if>
+            <if test="counselorId != null and counselorId != ''">
+                AND cs.counselor_id = #{counselorId}
+            </if>
+            <if test="status != null and status != ''">
+                AND ca.appointment_status = #{status}
+            </if>
+        </where>
+        ORDER BY ca.created_at DESC
+    </select>
+
+    <!-- 删除排班 -->
+    <delete id="deleteSchedule">
+        DELETE FROM counselor_schedule
+        WHERE schedule_id = #{scheduleId}
+    </delete>
+
+    <!-- 插入单个排班 -->
+    <insert id="insertSingleSchedule">
+        INSERT INTO counselor_schedule (
+            schedule_id,
+            counselor_id,
+            schedule_date,
+            start_time,
+            end_time,
+            slot_duration,
+            available_slots,
+            schedule_type,
+            status,
+            reservation_location,
+            created_by,
+            created_at,
+            updated_at
+        ) VALUES (
+            UUID(),
+            #{counselorId},
+            #{scheduleDate},
+            #{startTime},
+            #{endTime},
+            #{slotDuration},
+            #{availableSlots},
+            #{scheduleType},
+            #{status},
+            #{reservationLocation},
+            #{createdBy},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+</mapper>

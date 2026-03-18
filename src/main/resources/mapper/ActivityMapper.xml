@@ -1,0 +1,207 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.ActivityMapper">
+
+    <select id="listActivities"
+            resultType="sasu.platform.mhm.pojo.VO.ActivityListItemVO">
+        SELECT
+            a.activity_id AS activityId,
+            a.title,
+            a.summary,
+            a.cover_url AS coverUrl,
+            a.location,
+            a.start_time AS startTime,
+            a.end_time AS endTime,
+            a.capacity,
+            a.joined_count AS joinedCount,
+            CASE
+                WHEN #{userId} IS NULL OR #{userId} = '' THEN FALSE
+                WHEN EXISTS (
+                    SELECT 1
+                    FROM group_activity_join j
+                    WHERE j.activity_id = a.activity_id
+                      AND j.user_id = #{userId}
+                      AND j.join_status = 'JOINED'
+                ) THEN TRUE
+                ELSE FALSE
+            END AS joined
+        FROM group_activity a
+        <where>
+            <if test="q != null and q.status != null and q.status != ''">
+                AND a.status = #{q.status}
+            </if>
+            <if test="q != null and (q.status == null or q.status == '')">
+                AND a.status = 'PUBLISHED'
+            </if>
+            <if test="q != null and q.keyword != null and q.keyword != ''">
+                AND (a.title LIKE CONCAT('%', #{q.keyword}, '%')
+                OR a.summary LIKE CONCAT('%', #{q.keyword}, '%'))
+            </if>
+            <if test="q != null and q.startTime != null and q.startTime != ''">
+                AND a.start_time <![CDATA[>=]]> #{q.startTime}
+            </if>
+            <if test="q != null and q.endTime != null and q.endTime != ''">
+                AND a.start_time <![CDATA[<=]]> #{q.endTime}
+            </if>
+        </where>
+        ORDER BY a.start_time DESC
+    </select>
+
+    <select id="getActivityDetail"
+            resultType="sasu.platform.mhm.pojo.VO.ActivityDetailVO">
+        SELECT
+            a.activity_id AS activityId,
+            a.title,
+            a.summary,
+            a.content,
+            a.cover_url AS coverUrl,
+            a.location,
+            a.start_time AS startTime,
+            a.end_time AS endTime,
+            a.join_start_time AS joinStartTime,
+            a.join_end_time AS joinEndTime,
+            a.capacity,
+            a.joined_count AS joinedCount,
+            a.status,
+            CASE
+                WHEN #{userId} IS NULL OR #{userId} = '' THEN FALSE
+                WHEN j.join_status = 'JOINED' THEN TRUE
+                ELSE FALSE
+            END AS joined,
+            CASE
+                WHEN #{userId} IS NULL OR #{userId} = '' THEN FALSE
+                WHEN j.checkin_status = 1 THEN TRUE
+                ELSE FALSE
+            END AS checkedIn
+        FROM group_activity a
+        LEFT JOIN group_activity_join j
+            ON j.activity_id = a.activity_id
+           AND j.user_id = #{userId}
+        WHERE a.activity_id = #{activityId}
+        LIMIT 1
+    </select>
+
+    <select id="getJoinRecord"
+            resultType="sasu.platform.mhm.pojo.entity.GroupActivityJoin">
+        SELECT
+            join_id AS joinId,
+            activity_id AS activityId,
+            user_id AS userId,
+            join_status AS joinStatus,
+            joined_at AS joinedAt,
+            cancelled_at AS cancelledAt,
+            checkin_status AS checkinStatus,
+            checked_in_at AS checkedInAt,
+            college_snapshot AS collegeSnapshot,
+            class_snapshot AS classSnapshot,
+            created_at AS createdAt,
+            updated_at AS updatedAt
+        FROM group_activity_join
+        WHERE activity_id = #{activityId}
+          AND user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <insert id="insertJoinRecord">
+        INSERT INTO group_activity_join(
+            join_id,
+            activity_id,
+            user_id,
+            join_status,
+            joined_at,
+            checkin_status,
+            college_snapshot,
+            class_snapshot,
+            created_at,
+            updated_at
+        ) VALUES (
+            UUID(),
+            #{activityId},
+            #{userId},
+            #{joinStatus},
+            #{joinedAt},
+            #{checkinStatus},
+            #{collegeSnapshot},
+            #{classSnapshot},
+            NOW(),
+            NOW()
+        )
+    </insert>
+
+    <update id="cancelJoin">
+        UPDATE group_activity_join
+        SET join_status = 'CANCELLED',
+            cancelled_at = NOW(),
+            updated_at = NOW()
+        WHERE activity_id = #{activityId}
+          AND user_id = #{userId}
+          AND join_status = 'JOINED'
+          AND (checkin_status IS NULL OR checkin_status = 0)
+    </update>
+
+    <update id="checkin">
+        UPDATE group_activity_join
+        SET checkin_status = 1,
+            checked_in_at = NOW(),
+            updated_at = NOW()
+        WHERE activity_id = #{activityId}
+          AND user_id = #{userId}
+          AND join_status = 'JOINED'
+          AND (checkin_status IS NULL OR checkin_status = 0)
+    </update>
+
+    <update id="increaseJoinedCountIfAvailable">
+        UPDATE group_activity
+        SET joined_count = joined_count + 1,
+            updated_at = NOW()
+        WHERE activity_id = #{activityId}
+          AND status = 'PUBLISHED'
+          AND (
+            capacity IS NULL
+            OR capacity = 0
+            OR joined_count <![CDATA[<]]> capacity
+          )
+    </update>
+
+    <update id="decreaseJoinedCount">
+        UPDATE group_activity
+        SET joined_count = CASE WHEN joined_count > 0 THEN joined_count - 1 ELSE 0 END,
+            updated_at = NOW()
+        WHERE activity_id = #{activityId}
+    </update>
+
+    <select id="listMyActivities"
+            resultType="sasu.platform.mhm.pojo.VO.MyActivityVO">
+        SELECT
+            a.activity_id AS activityId,
+            a.title,
+            a.cover_url AS coverUrl,
+            a.location,
+            a.start_time AS startTime,
+            a.end_time AS endTime,
+            j.join_status AS joinStatus,
+            j.checkin_status AS checkinStatus,
+            j.joined_at AS joinedAt,
+            j.checked_in_at AS checkedInAt,
+            j.college_snapshot AS collegeSnapshot,
+            j.class_snapshot AS classSnapshot
+        FROM group_activity_join j
+        JOIN group_activity a ON a.activity_id = j.activity_id
+        WHERE j.user_id = #{userId}
+        ORDER BY j.joined_at DESC
+    </select>
+
+    <select id="getStudentOrgSnapshot"
+            resultType="java.util.HashMap">
+        SELECT
+            oc.org_name AS collegeName,
+            ok.org_name AS className
+        FROM student_info s
+        LEFT JOIN organization oc ON oc.org_id = s.college_id
+        LEFT JOIN organization ok ON ok.org_id = s.class_id
+        WHERE s.user_id = #{userId}
+        LIMIT 1
+    </select>
+
+</mapper>
+

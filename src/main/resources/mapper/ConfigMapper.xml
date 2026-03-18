@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.ConfigMapper">
+
+    <resultMap id="SystemConfigResultMap" type="sasu.platform.mhm.pojo.entity.SystemConfig">
+        <id property="configId" column="config_id"/>
+        <result property="configKey" column="config_key"/>
+        <result property="configValue" column="config_value"/>
+        <result property="configType" column="config_type"/>
+        <result property="description" column="description"/>
+        <result property="enabled" column="enabled"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+        <result property="createdBy" column="created_by"/>
+    </resultMap>
+
+    <!-- 根据配置键查询配置 -->
+    <select id="selectByKey" resultMap="SystemConfigResultMap">
+        SELECT * FROM system_config
+        WHERE config_key = #{configKey}
+    </select>
+
+    <!-- 根据配置类型查询配置 -->
+    <select id="selectByType" resultMap="SystemConfigResultMap">
+        SELECT * FROM system_config
+        WHERE config_type = #{configType}
+        AND enabled = 1
+        LIMIT 1
+    </select>
+
+    <!-- 插入配置 -->
+    <insert id="insertConfig">
+        INSERT INTO system_config (
+            config_id,
+            config_key,
+            config_value,
+            config_type,
+            description,
+            enabled,
+            created_at,
+            updated_at,
+            created_by
+        ) VALUES (
+            #{configId},
+            #{configKey},
+            #{configValue},
+            #{configType},
+            #{description},
+            COALESCE(#{enabled}, 1),
+            NOW(),
+            NOW(),
+            #{createdBy}
+        )
+    </insert>
+
+    <!-- 更新配置 -->
+    <update id="updateConfig">
+        UPDATE system_config
+        <set>
+            <if test="configValue != null">
+                config_value = #{configValue},
+            </if>
+            <if test="description != null">
+                description = #{description},
+            </if>
+            <if test="enabled != null">
+                enabled = #{enabled},
+            </if>
+            updated_at = NOW()
+        </set>
+        WHERE config_key = #{configKey}
+    </update>
+
+    <!-- 删除配置 -->
+    <delete id="deleteConfig">
+        DELETE FROM system_config
+        WHERE config_key = #{configKey}
+    </delete>
+
+</mapper>
+

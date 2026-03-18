@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.PreAssessmentTemplateMapper">
+
+    <!-- 前测量表模板映射 -->
+    <resultMap id="PreAssessmentTemplateResultMap" type="sasu.platform.mhm.pojo.entity.PreAssessmentTemplate">
+        <id property="templateId" column="template_id"/>
+        <result property="scaleType" column="scale_type"/>
+        <result property="scaleName" column="scale_name"/>
+        <result property="description" column="description"/>
+        <result property="createdBy" column="created_by"/>
+        <result property="status" column="status"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 前测量表题目映射 -->
+    <resultMap id="PreAssessmentQuestionResultMap" type="sasu.platform.mhm.pojo.entity.PreAssessmentQuestion">
+        <id property="questionId" column="question_id"/>
+        <result property="templateId" column="template_id"/>
+        <result property="questionNo" column="question_no"/>
+        <result property="questionType" column="question_type"/>
+        <result property="questionText" column="question_text"/>
+        <result property="optionsJson" column="options_json"/>
+        <result property="requiredFlag" column="required_flag"/>
+        <result property="scoreRuleJson" column="score_rule_json"/>
+        <result property="createdAt" column="created_at"/>
+        <result property="updatedAt" column="updated_at"/>
+    </resultMap>
+
+    <!-- 根据模板ID查询模板 -->
+    <select id="getTemplateById" parameterType="string"
+            resultMap="PreAssessmentTemplateResultMap">
+        SELECT
+            template_id,
+            scale_type,
+            scale_name,
+            description,
+            created_by,
+            status,
+            created_at,
+            updated_at
+        FROM pre_assessment_template
+        WHERE template_id = #{templateId}
+    </select>
+
+    <!-- 根据模板ID查询题目列表 -->
+    <select id="listQuestionsByTemplateId" parameterType="string"
+            resultMap="PreAssessmentQuestionResultMap">
+        SELECT
+            question_id,
+            template_id,
+            question_no,
+            question_type,
+            question_text,
+            options_json,
+            required_flag,
+            score_rule_json,
+            created_at,
+            updated_at
+        FROM pre_assessment_question
+        WHERE template_id = #{templateId}
+        ORDER BY question_no ASC
+    </select>
+
+</mapper>
+
+

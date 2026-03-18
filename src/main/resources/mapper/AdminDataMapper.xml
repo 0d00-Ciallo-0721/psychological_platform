@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.AdminDataMapper">
+
+    <resultMap id="BackupRecordMap" type="sasu.platform.mhm.pojo.entity.BackupRecord">
+        <id column="id" property="id"/>
+        <result column="file_name" property="fileName"/>
+        <result column="size" property="size"/>
+        <result column="status" property="status"/>
+        <result column="remark" property="remark"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="operator" property="operator"/>
+    </resultMap>
+
+    <resultMap id="ArchiveConfigMap" type="sasu.platform.mhm.pojo.entity.ArchiveConfig">
+        <id column="id" property="id"/>
+        <result column="enabled" property="enabled"/>
+        <result column="cycle" property="cycle"/>
+        <result column="keep_years" property="keepYears"/>
+        <result column="archive_path" property="archivePath"/>
+        <result column="updated_at" property="updatedAt"/>
+    </resultMap>
+
+    <resultMap id="ArchiveHistoryMap" type="sasu.platform.mhm.pojo.entity.ArchiveHistory">
+        <id column="id" property="id"/>
+        <result column="period" property="period"/>
+        <result column="status" property="status"/>
+        <result column="file_count" property="fileCount"/>
+        <result column="created_at" property="createdAt"/>
+        <result column="operator" property="operator"/>
+    </resultMap>
+
+    <select id="pageBackup" resultMap="BackupRecordMap">
+        SELECT id, file_name, size, status, remark, created_at, operator
+        FROM backup_record
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (remark LIKE CONCAT('%', #{keyword}, '%')
+                    OR operator LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="statusFilter != null and statusFilter != '' and statusFilter != 'all'">
+                AND status = #{statusFilter}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertBackup" parameterType="sasu.platform.mhm.pojo.entity.BackupRecord">
+        INSERT INTO backup_record (id, file_name, size, status, remark, created_at, operator)
+        VALUES (#{id}, #{fileName}, #{size}, #{status}, #{remark}, NOW(), #{operator})
+    </insert>
+
+    <select id="getBackupById" resultMap="BackupRecordMap">
+        SELECT id, file_name, size, status, remark, created_at, operator
+        FROM backup_record
+        WHERE id = #{id}
+        LIMIT 1
+    </select>
+
+    <select id="getArchiveConfig" resultMap="ArchiveConfigMap">
+        SELECT id, enabled, cycle, keep_years, archive_path, updated_at
+        FROM data_archive_config
+        WHERE id = 1
+        LIMIT 1
+    </select>
+
+    <update id="upsertArchiveConfig" parameterType="sasu.platform.mhm.pojo.entity.ArchiveConfig">
+        UPDATE data_archive_config
+        SET enabled      = #{enabled},
+            cycle        = #{cycle},
+            keep_years   = #{keepYears},
+            archive_path = #{archivePath}
+        WHERE id = 1
+    </update>
+
+    <select id="pageArchiveHistory" resultMap="ArchiveHistoryMap">
+        SELECT id, period, status, file_count, created_at, operator
+        FROM archive_history
+        <where>
+            <if test="statusFilter != null and statusFilter != '' and statusFilter != 'all'">
+                AND status = #{statusFilter}
+            </if>
+        </where>
+        ORDER BY created_at DESC
+    </select>
+
+    <insert id="insertArchiveHistory" parameterType="sasu.platform.mhm.pojo.entity.ArchiveHistory">
+        INSERT INTO archive_history (id, period, status, file_count, created_at, operator)
+        VALUES (#{id}, #{period}, #{status}, #{fileCount}, NOW(), #{operator})
+    </insert>
+
+</mapper>
+
+

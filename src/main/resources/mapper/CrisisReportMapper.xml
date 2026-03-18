@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="sasu.platform.mhm.mapper.CrisisReportMapper">
+
+    <!-- 动态插入危机上报数据 -->
+    <insert id="report">
+        INSERT INTO crisis_report
+        <trim prefix="(" suffix=")" suffixOverrides=",">
+            <!-- 上报ID -->
+            report_id,
+            <!-- 预约ID -->
+            <if test="appointmentId != null and appointmentId != ''">
+                appointment_id,
+            </if>
+            <!-- 咨询师ID -->
+            <if test="counselorId != null and counselorId != ''">
+                counselor_id,
+            </if>
+            <!-- 学生ID -->
+            <if test="studentId != null and studentId != ''">
+                student_id,
+            </if>
+            <!-- 上报类型 -->
+            <if test="reportType != null and reportType != ''">
+                report_type,
+            </if>
+            <!-- 危机等级 -->
+            <if test="crisisLevel != null and crisisLevel != ''">
+                crisis_level,
+            </if>
+            <!-- 事件描述 -->
+            <if test="incidentDescription != null and incidentDescription != ''">
+                incident_description,
+            </if>
+            <!-- 风险评估 -->
+            <if test="riskAssessment != null and riskAssessment != ''">
+                risk_assessment,
+            </if>
+            <!-- 已采取的紧急措施 -->
+            <if test="immediateActions != null and immediateActions != ''">
+                immediate_actions,
+            </if>
+            <!-- 建议措施 -->
+            <if test="recommendedActions != null and recommendedActions != ''">
+                recommended_actions,
+            </if>
+            <!-- 手写危机上报表图片URL -->
+            <if test="handwrittenReportUrl != null and handwrittenReportUrl != ''">
+                handwritten_report_url,
+            </if>
+        </trim>
+        <trim prefix="VALUES (" suffix=")" suffixOverrides=",">
+            #{reportId,jdbcType=VARCHAR},
+            <if test="appointmentId != null and appointmentId != ''">
+                #{appointmentId,jdbcType=VARCHAR},
+            </if>
+            <if test="counselorId != null and counselorId != ''">
+                #{counselorId,jdbcType=VARCHAR},
+            </if>
+            <if test="studentId != null and studentId != ''">
+                #{studentId,jdbcType=VARCHAR},
+            </if>
+            <if test="reportType != null and reportType != ''">
+                #{reportType,jdbcType=VARCHAR},
+            </if>
+            <if test="crisisLevel != null and crisisLevel != ''">
+                #{crisisLevel,jdbcType=VARCHAR},
+            </if>
+            <if test="incidentDescription != null and incidentDescription != ''">
+                #{incidentDescription,jdbcType=VARCHAR},
+            </if>
+            <if test="riskAssessment != null and riskAssessment != ''">
+                #{riskAssessment,jdbcType=VARCHAR},
+            </if>
+            <if test="immediateActions != null and immediateActions != ''">
+                #{immediateActions,jdbcType=VARCHAR},
+            </if>
+            <if test="recommendedActions != null and recommendedActions != ''">
+                #{recommendedActions,jdbcType=VARCHAR},
+            </if>
+            <if test="handwrittenReportUrl != null and handwrittenReportUrl != ''">
+                #{handwrittenReportUrl,jdbcType=VARCHAR},
+            </if>
+        </trim>
+    </insert>
+    <update id="setLevel" >
+        update crisis_report set crisis_level = #{crisisLevel} where report_id = #{reportId}
+    </update>
+    <select id="getCrisisList" resultType="sasu.platform.mhm.pojo.VO.CrisisReportVO">
+        SELECT * from crisis_report c  left join student_info s on c.student_id = s.student_id
+        <where>
+            <if test="crisisLevel != null and crisisLevel != ''">
+                AND c.crisis_level = #{crisisLevel}
+            </if>
+            <if test="college != null and college != ''">
+                AND s.college_id = #{college}
+            </if>
+            <if test="reportStatus != null and reportStatus != '' ">
+                AND c.report_status = #{reportStatus}
+            </if>
+        </where>
+    </select>
+
+    <!-- 危机审批列表，用于 /api/center/approval/crisis/list -->
+    <select id="selectCrisisApprovalList" resultType="sasu.platform.mhm.pojo.vo.CrisisApprovalVO">
+        SELECT
+            c.report_id                                       AS id,
+            c.crisis_level                                    AS level,
+            CASE c.crisis_level
+                WHEN 'SEVERE' THEN '红色'
+                WHEN 'HIGH' THEN '橙色'
+                WHEN 'MODERATE' THEN '黄色'
+                WHEN 'LOW' THEN '蓝色'
+                ELSE '未知'
+                END                                           AS levelText,
+            u.real_name                                       AS studentName,
+            si.student_number                                 AS studentId,
+            o.org_name                                        AS collegeName,
+            si.class_id                                       AS className,
+            DATE_FORMAT(c.created_at, '%Y-%m-%d')             AS reportDate,
+            c.incident_description                            AS description,
+            c.report_status                                   AS status,
+            CASE c.report_status
+                WHEN 'PENDING' THEN '待审批'
+                WHEN 'REVIEWING' THEN '处理中'
+                WHEN 'PROCESSED' THEN '已处理'
+                WHEN 'CLOSED' THEN '已结案'
+                ELSE '未知'
+                END                                           AS statusText,
+            ru.real_name                                      AS handler
+        FROM crisis_report c
+                 JOIN student_info si ON c.student_id = si.student_id
+                 JOIN user u ON si.user_id = u.user_id
+                 LEFT JOIN organization o ON si.college_id = o.org_id
+                 LEFT JOIN user ru ON c.reviewer_id = ru.user_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (u.real_name LIKE CONCAT('%', #{keyword}, '%')
+                    OR si.student_number LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="college != null and college != ''">
+                AND si.college_id = #{college}
+            </if>
+            <if test="level != null and level != ''">
+                AND c.crisis_level = #{level}
+            </if>
+            <if test="status != null and status != '' and status != 'all'">
+                AND c.report_status = #{status}
+            </if>
+            <if test="startDate != null and startDate != ''">
+                AND c.created_at &gt;= #{startDate}
+            </if>
+            <if test="endDate != null and endDate != ''">
+                AND c.created_at &lt;= #{endDate}
+            </if>
+        </where>
+        ORDER BY c.created_at DESC
+    </select>
+
+    <!-- 危机审批通过 -->
+    <update id="approveCrisis">
+        UPDATE crisis_report
+        SET report_status = 'PROCESSED',
+            reviewer_id   = #{param2},
+            review_notes  = #{param3},
+            updated_at    = NOW()
+        WHERE report_id = #{param1}
+    </update>
+
+    <!-- 危机审批驳回 -->
+    <update id="rejectCrisis">
+        UPDATE crisis_report
+        SET report_status = 'REJECTED',
+            reviewer_id   = #{param2},
+            review_notes  = #{param3},
+            updated_at    = NOW()
+        WHERE report_id = #{param1}
+    </update>
+</mapper>
