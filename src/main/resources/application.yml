@@ -51,7 +51,7 @@ server:
 aliyun:
   oss:
     endpoint: oss-cn-hangzhou.aliyuncs.com  # 例如: oss-cn-hangzhou.aliyuncs.com
-    accessKeyId: your_access_key_id_here
-    accessKeySecret: your_access_key_secret_here
+    access-key-id: 1
+    access-key-secret: 1
     bucket-name: littleriver-web-tlias
     url-prefix: https://your-bucket-name.oss-cn-hangzhou.aliyuncs.com

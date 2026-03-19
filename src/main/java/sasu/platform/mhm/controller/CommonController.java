@@ -1,5 +1,5 @@
 package sasu.platform.mhm.controller;
-
+import java.util.Base64;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,24 +24,24 @@ public class CommonController {
     @Autowired
     private OssUtil ossUtil;
     @GetMapping("/getVerificationCode")
-    public void getVerificationCode(HttpServletResponse response){
+    public R<Map<String, String>> getVerificationCode(){
         log.info("发送验证码");
         Map<String,byte[]> verificationCode = commonService.verificationCode();
         Set<String> keySet = verificationCode.keySet();
         String key = keySet.iterator().next();
         byte[] bytes = verificationCode.get(key);
-        response.setContentType("image/png");
-        response.setHeader("key",key);
-        try {
-            OutputStream outputStream = response.getOutputStream();
-            //将图片字节写入响应流
-            outputStream.write(bytes);
-            //刷新响应流
-            outputStream.flush();
-        } catch (IOException e) {
-            throw new RuntimeException("验证码输出失败");
-        }
 
+        // 1. 将图片字节数组转换为 Base64 编码字符串
+        String base64Img = Base64.getEncoder().encodeToString(bytes);
+        
+        // 2. 拼接前端 img 标签可直接使用的 data:image URI 前缀 (注意 CaptchaUtil 里写的是 JPEG)
+        String imgData = "data:image/jpeg;base64," + base64Img;
+
+        // 3. 返回标准的 JSON 格式
+        return R.success(Map.of(
+                "key", key,
+                "image", imgData // 前端直接把这个塞进 <image src="{{image}}"> 即可
+        ));
     }
     @PostMapping("/login")
     public R login(@RequestParam("username") String username,

@@ -49,11 +49,15 @@ public class SecurityConfig {
                                 "/api/common/login", 
                                 "/api/common/getVerificationCode",
                                 "/api/common/health",
-                                "/api/cms/*",
-                                "/api/activity/*",
-                                "/v3/api-docs/**",     // 放行获取JSON数据的接口
-                                "/swagger-ui/**",      // 放行Swagger自带的网页测试UI
-                                "/swagger-ui.html"     // 放行Swagger入口页面
+                                "/api/register",       // 前面加过的注册接口
+                                "/api/auth/**",        
+                                "/api/cms/**",
+                                "/api/activity/**",
+                                "/api/notice/**",      // 👈 新增：放行首页公告接口
+                                "/api/home/**",        // 👈 新增：放行首页聚合数据接口 (防患于未然)
+                                "/v3/api-docs/**",     
+                                "/swagger-ui/**",      
+                                "/swagger-ui.html"       // 放行Swagger入口页面
                         ).permitAll()
                         .requestMatchers(HttpMethod.OPTIONS).permitAll()
                         .anyRequest().authenticated()
